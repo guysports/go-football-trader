@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -31,8 +30,7 @@ type (
 
 const (
 	sessionExpiry = 4 * time.Hour // Set to whatever is configured in the Betfair account
-	sessionHome   = "$HOME/.betfair"
-	sessionFile   = "session.json"
+	sessionFile   = ".betfair/session.json"
 )
 
 // UnmarshalJSON implements custom unmarshaler for time object in session data
@@ -71,7 +69,7 @@ func (s *SessionData) MarshalJSON() ([]byte, error) {
 }
 
 // NewLogin reads the specified path and unmarshals into a Login struct
-func (l *Login) NewLogin(path string) (*Login, error) {
+func NewLogin(path string) (*Login, error) {
 	login := Login{}
 
 	loginData, err := ioutil.ReadFile(path)
@@ -86,7 +84,7 @@ func (l *Login) NewLogin(path string) (*Login, error) {
 }
 
 // BetfairAuthenticate either
-func (l *Login) BetfairAuthenticate(appKey string) (*betting.API, error) {
+func (l *Login) BetfairAuthenticate(ctx context.Context, appKey string) (*betting.API, error) {
 	cfg := types.Config{
 		CertPath: l.CertPath,
 		KeyPath:  l.KeyPath,
@@ -97,9 +95,6 @@ func (l *Login) BetfairAuthenticate(appKey string) (*betting.API, error) {
 	if l.RootCAPath != "" {
 		cfg.RootCAPath = l.RootCAPath
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), types.DefaultTimeout)
-	defer cancel()
 	client, err := betting.NewAPI(ctx, &cfg)
 	if err != nil {
 		return nil, err
@@ -108,6 +103,7 @@ func (l *Login) BetfairAuthenticate(appKey string) (*betting.API, error) {
 	// Check for existing session key and use if it hasn't expired
 	sessionAuth := SessionData{}
 	sessionDirExists := false
+	sessionHome := os.Getenv("HOME")
 	if _, err := os.Stat(sessionHome); !os.IsNotExist(err) {
 		sessionDirExists = true
 		// Check sessiondata
@@ -124,7 +120,6 @@ func (l *Login) BetfairAuthenticate(appKey string) (*betting.API, error) {
 			}
 		}
 	}
-
 	authData, err := client.Client.Authenticate()
 	if err != nil {
 		return nil, err
@@ -132,7 +127,11 @@ func (l *Login) BetfairAuthenticate(appKey string) (*betting.API, error) {
 
 	// Store the session key in the $HOME/.betfair directory with an expiry time for reuse
 	if !sessionDirExists {
-		os.Mkdir(sessionHome, fs.FileMode(os.O_RDWR))
+		err = os.Mkdir(sessionHome, 0666)
+		if err != nil {
+			fmt.Printf("Unable to create store dir (%s)\n", err.Error())
+			return nil, err
+		}
 	}
 	sessionToStore := SessionData{
 		Key:       authData.SessionToken,
@@ -140,7 +139,7 @@ func (l *Login) BetfairAuthenticate(appKey string) (*betting.API, error) {
 	}
 	// Not too fussed about an error, as it just means another login next time around
 	bytesToWrite, _ := json.Marshal(&sessionToStore)
-	ioutil.WriteFile(fmt.Sprintf("%s/%s", sessionHome, sessionFile), bytesToWrite, fs.FileMode(os.O_RDWR))
+	ioutil.WriteFile(fmt.Sprintf("%s/%s", sessionHome, sessionFile), bytesToWrite, 0666)
 
 	return client, nil
 }
