@@ -1,17 +1,32 @@
+// Copyright 2022 Guy Barden
+// track.go - top level command that provides and saves the price information from the Betfair Exchange
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+// 	http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"guysports/go-football-trader/pkg/access"
 
 	"github.com/guysports/go-betfair-api/pkg/types"
+	"github.com/guysports/go-football-trader/pkg/store"
 )
 
 type (
 	Track struct {
 		JsonLoginPath string `help:"Path to the json file containing the api login information to Betfair"`
+		JsonQuery     string `help:"Path to the markets to be queried for match odds"`
 	}
 )
 
@@ -28,17 +43,15 @@ func (t *Track) Run(globals *types.Globals) error {
 	if err != nil {
 		return err
 	}
-	filter := types.MarketFilter{
-		EventTypeIds: []string{"1", "2"},
-	}
-	eventTypes, err := bettingClient.ListEventTypes(&filter)
+	queryParameters, err := access.NewQuery(t.JsonQuery)
 	if err != nil {
-		fmt.Printf("Error returned is %s\n", err.Error())
 		return err
 	}
-	fmt.Println("Event Types returned...")
-	for _, eventTypeW := range eventTypes {
-		fmt.Printf("Event Type ID %s, Market %s, Number of Markets %d\n", eventTypeW.EventType.ID, eventTypeW.EventType.Name, eventTypeW.MarketCount)
+
+	storeClient := store.NewStore("./store/store.json", bettingClient)
+	err = storeClient.AddLeaguePricesToStore(&queryParameters)
+	if err != nil {
+		return err
 	}
 
 	return nil
