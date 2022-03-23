@@ -341,7 +341,7 @@ func (s *Store) SaveStoreToFile() error {
 
 	now := time.Now().Unix()
 	nameComponents := strings.Split(s.StorePath, ".")
-	err = os.Rename(s.StorePath, fmt.Sprintf(".%s_%d.%s", nameComponents[1], now, nameComponents[2]))
+	err = os.Rename(s.StorePath, fmt.Sprintf("%s_%d.%s", nameComponents[0], now, nameComponents[1]))
 	if err != nil {
 		return err
 	}

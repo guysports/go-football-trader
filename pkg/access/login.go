@@ -135,6 +135,11 @@ func (l *Login) BetfairAuthenticate(ctx context.Context, appKey string) (*bettin
 			}
 		}
 	}
+
+	return l.BetfairAuthenticateImpl(client, sessionHome, sessionDirExists)
+}
+
+func (l *Login) BetfairAuthenticateImpl(client *betting.API, sessionHome string, sessionDirExists bool) (*betting.API, error) {
 	authData, err := client.Client.Authenticate()
 	if err != nil {
 		return nil, err
@@ -144,7 +149,6 @@ func (l *Login) BetfairAuthenticate(ctx context.Context, appKey string) (*bettin
 	if !sessionDirExists {
 		err = os.Mkdir(sessionHome, 0666)
 		if err != nil {
-			fmt.Printf("Unable to create store dir (%s)\n", err.Error())
 			return nil, err
 		}
 	}
@@ -154,7 +158,7 @@ func (l *Login) BetfairAuthenticate(ctx context.Context, appKey string) (*bettin
 	}
 	// Not too fussed about an error, as it just means another login next time around
 	bytesToWrite, _ := json.Marshal(&sessionToStore)
-	ioutil.WriteFile(fmt.Sprintf("%s/%s", sessionHome, sessionFile), bytesToWrite, 0666)
+	_ = ioutil.WriteFile(fmt.Sprintf("%s/%s", sessionHome, sessionFile), bytesToWrite, 0666)
 
 	return client, nil
 }

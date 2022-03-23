@@ -16,9 +16,11 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"strings"
 
 	"guysports/go-football-trader/pkg/access"
-
 	"guysports/go-football-trader/pkg/store"
 
 	"github.com/guysports/go-betfair-api/pkg/types"
@@ -28,7 +30,12 @@ type (
 	Track struct {
 		JsonLoginPath string `help:"Path to the json file containing the api login information to Betfair"`
 		JsonQuery     string `help:"Path to the markets to be queried for match odds"`
+		StorePath     string `help:"Path to the where the history of price data for fixtures should be stored"`
 	}
+)
+
+var (
+	SessionExpired = "ANGX-0003"
 )
 
 func (t *Track) Run(globals *types.Globals) error {
@@ -49,16 +56,24 @@ func (t *Track) Run(globals *types.Globals) error {
 		return err
 	}
 
-	storeClient := store.NewStore("./store/store.json", bettingClient)
+	storeClient := store.NewStore(fmt.Sprintf("%s/store.json", t.StorePath), bettingClient)
 	err = storeClient.AddLeaguePricesToStore(queryParameters)
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), SessionExpired) {
+			// session expired force token refresh
+			bettingClient, err = apiClient.BetfairAuthenticateImpl(bettingClient, os.Getenv("HOME"), true)
+			err = storeClient.AddLeaguePricesToStore(queryParameters)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	err = storeClient.SaveStoreToFile()
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
