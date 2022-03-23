@@ -19,8 +19,9 @@ import (
 
 	"guysports/go-football-trader/pkg/access"
 
+	"guysports/go-football-trader/pkg/store"
+
 	"github.com/guysports/go-betfair-api/pkg/types"
-	"github.com/guysports/go-football-trader/pkg/store"
 )
 
 type (
@@ -49,7 +50,12 @@ func (t *Track) Run(globals *types.Globals) error {
 	}
 
 	storeClient := store.NewStore("./store/store.json", bettingClient)
-	err = storeClient.AddLeaguePricesToStore(&queryParameters)
+	err = storeClient.AddLeaguePricesToStore(queryParameters)
+	if err != nil {
+		return err
+	}
+
+	err = storeClient.SaveStoreToFile()
 	if err != nil {
 		return err
 	}

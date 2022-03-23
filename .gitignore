@@ -16,3 +16,4 @@
 # vendor/
 query.json
 go-football-trader
+store/
