@@ -47,7 +47,7 @@ func (t *Track) Run(globals *types.Globals) error {
 	defer cancel()
 
 	// Login to Betfair
-	bettingClient, err := apiClient.BetfairAuthenticate(ctx, globals.AppKey)
+	bettingClient, err := apiClient.BetfairAuthenticate(ctx, globals.AppKey, nil)
 	if err != nil {
 		return err
 	}

@@ -45,7 +45,7 @@ type (
 
 const (
 	sessionExpiry = 4 * time.Hour // Set to whatever is configured in the Betfair account
-	sessionFile   = ".betfair/session.json"
+	sessionFile   = "session.json"
 )
 
 // UnmarshalJSON implements custom unmarshaler for time object in session data
@@ -99,7 +99,7 @@ func NewLogin(path string) (*Login, error) {
 }
 
 // BetfairAuthenticate either
-func (l *Login) BetfairAuthenticate(ctx context.Context, appKey string) (*betting.API, error) {
+func (l *Login) BetfairAuthenticate(ctx context.Context, appKey string, client *betting.API) (*betting.API, error) {
 	cfg := types.Config{
 		CertPath: l.CertPath,
 		KeyPath:  l.KeyPath,
@@ -110,15 +110,21 @@ func (l *Login) BetfairAuthenticate(ctx context.Context, appKey string) (*bettin
 	if l.RootCAPath != "" {
 		cfg.RootCAPath = l.RootCAPath
 	}
-	client, err := betting.NewAPI(ctx, &cfg)
-	if err != nil {
-		return nil, err
+	var err error
+	if client == nil {
+		client, err = betting.NewAPI(ctx, &cfg)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Check for existing session key and use if it hasn't expired
 	sessionAuth := SessionData{}
 	sessionDirExists := false
-	sessionHome := os.Getenv("HOME")
+	sessionHome := os.Getenv("UNIT_TEST_HOME")
+	if sessionHome == "" {
+		sessionHome = fmt.Sprintf("%s/%s", os.Getenv("HOME"), ".betfair")
+	}
 	if _, err := os.Stat(sessionHome); !os.IsNotExist(err) {
 		sessionDirExists = true
 		// Check sessiondata
@@ -151,6 +157,7 @@ func (l *Login) BetfairAuthenticateImpl(client *betting.API, sessionHome string,
 		if err != nil {
 			return nil, err
 		}
+		os.Chmod(sessionHome, 0755)
 	}
 	sessionToStore := SessionData{
 		Key:       authData.SessionToken,
