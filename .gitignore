@@ -16,4 +16,5 @@
 # vendor/
 query.json
 go-football-trader
-store/
+store/*.json
+historical/

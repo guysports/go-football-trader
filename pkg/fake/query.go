@@ -25,6 +25,7 @@ type (
 		InjectListEventsError          bool
 		InjectListMarketCatalogueError bool
 		InjectListMarketBookError      bool
+		AppendPrices                   bool
 	}
 )
 
@@ -133,6 +134,17 @@ func (f *FakeQuery) ListMarketBook(marketIds []string, priceProjection *types.Pr
 	if f.InjectListMarketBookError {
 		return nil, fmt.Errorf("error listing marketbook")
 	}
+	firstHomeBackOdds := []types.Odds{{Price: 3.7, Size: 777.45}, {Price: 3.65, Size: 1164.38}, {Price: 3.6, Size: 1019.41}}
+	firstHomeLayOdds := []types.Odds{{Price: 3.75, Size: 718.45}, {Price: 3.8, Size: 1145.15}, {Price: 3.85, Size: 1505.97}}
+	secondHomeBackOdds := []types.Odds{{Price: 3.75, Size: 777.45}, {Price: 3.7, Size: 1164.38}, {Price: 3.65, Size: 1019.41}}
+	secondHomeLayOdds := []types.Odds{{Price: 3.8, Size: 718.45}, {Price: 3.85, Size: 1145.15}, {Price: 3.95, Size: 1505.97}}
+	firstAwayBackOdds := []types.Odds{{Price: 2.86, Size: 537.2}, {Price: 2.84, Size: 167.17}, {Price: 2.82, Size: 833.53}}
+	firstAwayLayOdds := []types.Odds{{Price: 2.9, Size: 194.9}, {Price: 2.92, Size: 1168.09}, {Price: 2.94, Size: 526.12}}
+	secondAwayBackOdds := []types.Odds{{Price: 2.84, Size: 537.2}, {Price: 2.82, Size: 167.17}, {Price: 2.8, Size: 833.53}}
+	secondAwayLayOdds := []types.Odds{{Price: 2.92, Size: 194.9}, {Price: 2.94, Size: 1168.09}, {Price: 2.96, Size: 526.12}}
+	drawBackOdds := []types.Odds{{Price: 2.56, Size: 70.4}, {Price: 2.54, Size: 1882.05}, {Price: 2.52, Size: 2229.28}}
+	drawLayOdds := []types.Odds{{Price: 2.6, Size: 171.1}, {Price: 2.62, Size: 904.11}, {Price: 2.64, Size: 73.12}}
+
 	// {
 	// 	"marketId": "1.195693926",
 	// 	"isMarketDataDelayed": true,
@@ -239,6 +251,16 @@ func (f *FakeQuery) ListMarketBook(marketIds []string, priceProjection *types.Pr
 	// 		}
 	// 	}]
 	// }]
+	hbOdds := firstHomeBackOdds
+	hlOdds := firstHomeLayOdds
+	abOdds := firstAwayBackOdds
+	alOdds := firstAwayLayOdds
+	if f.AppendPrices {
+		hbOdds = secondHomeBackOdds
+		hlOdds = secondHomeLayOdds
+		abOdds = secondAwayBackOdds
+		alOdds = secondAwayLayOdds
+	}
 	marketbook := []types.MarketBookWrapper{
 		{
 			MarketId:            "1.195693926",
@@ -262,8 +284,8 @@ func (f *FakeQuery) ListMarketBook(marketIds []string, priceProjection *types.Pr
 					Handicap:    0.0,
 					Status:      "ACTIVE",
 					Exchange: types.ExchangePrices{
-						AvailableToBack: []types.Odds{{Price: 3.7, Size: 777.45}, {Price: 3.65, Size: 1164.38}, {Price: 3.6, Size: 1019.41}},
-						AvailableToLay:  []types.Odds{{Price: 3.75, Size: 718.45}, {Price: 3.8, Size: 1145.15}, {Price: 3.85, Size: 1505.97}},
+						AvailableToBack: hbOdds,
+						AvailableToLay:  hlOdds,
 					},
 				},
 				{
@@ -271,8 +293,8 @@ func (f *FakeQuery) ListMarketBook(marketIds []string, priceProjection *types.Pr
 					Handicap:    0.0,
 					Status:      "ACTIVE",
 					Exchange: types.ExchangePrices{
-						AvailableToBack: []types.Odds{{Price: 2.86, Size: 537.2}, {Price: 2.84, Size: 167.17}, {Price: 2.82, Size: 833.53}},
-						AvailableToLay:  []types.Odds{{Price: 2.9, Size: 194.9}, {Price: 2.92, Size: 1168.09}, {Price: 2.94, Size: 526.12}},
+						AvailableToBack: abOdds,
+						AvailableToLay:  alOdds,
 					},
 				},
 				{
@@ -280,8 +302,8 @@ func (f *FakeQuery) ListMarketBook(marketIds []string, priceProjection *types.Pr
 					Handicap:    0.0,
 					Status:      "ACTIVE",
 					Exchange: types.ExchangePrices{
-						AvailableToBack: []types.Odds{{Price: 2.56, Size: 70.4}, {Price: 2.54, Size: 1882.05}, {Price: 2.52, Size: 2229.28}},
-						AvailableToLay:  []types.Odds{{Price: 2.6, Size: 171.1}, {Price: 2.62, Size: 904.11}, {Price: 2.64, Size: 73.12}},
+						AvailableToBack: drawBackOdds,
+						AvailableToLay:  drawLayOdds,
 					},
 				},
 			},
