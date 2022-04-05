@@ -149,39 +149,8 @@ func (s *Store) AddLeaguePricesToStore(queryParameters *access.MarketQuery) erro
 			return err
 		}
 		// For each market, get the pricing information
-		// {
-		// 	"marketId": "1.195693926",
-		// 	"marketName": "Match Odds",
-		// 	"totalMatched": 53933.43,
-		// 	"runners": [{
-		// 		"selectionId": 64374,
-		// 		"runnerName": "Mainz",
-		// 		"handicap": 0.0,
-		// 		"sortPriority": 1,
-		// 		"metadata": {
-		// 			"runnerId": "64374"
-		// 		}
-		// 	}, {
-		// 		"selectionId": 44785,
-		// 		"runnerName": "Dortmund",
-		// 		"handicap": 0.0,
-		// 		"sortPriority": 2,
-		// 		"metadata": {
-		// 			"runnerId": "44785"
-		// 		}
-		// 	}, {
-		// 		"selectionId": 58805,
-		// 		"runnerName": "The Draw",
-		// 		"handicap": 0.0,
-		// 		"sortPriority": 3,
-		// 		"metadata": {
-		// 			"runnerId": "58805"
-		// 		}
-		// 	}]
-		// }
 		marketIds := []string{}
 		for _, market := range markets {
-			//fmt.Printf("Market ID %s: %s, Matched %.2f\n", market.MarketId, market.MarketName, market.TotalMatched)
 			// Create PriceHistories keyed on runner selection IDs
 			leagueId, eventId, err := s.findEventFromTeams(market.Selections[0].Name, market.Selections[1].Name)
 			if err != nil {
@@ -200,112 +169,6 @@ func (s *Store) AddLeaguePricesToStore(queryParameters *access.MarketQuery) erro
 			return err
 		}
 
-		// {
-		// 	"marketId": "1.195693926",
-		// 	"isMarketDataDelayed": true,
-		// 	"status": "OPEN",
-		// 	"betDelay": 5,
-		// 	"bspReconciled": false,
-		// 	"complete": true,
-		// 	"inplay": true,
-		// 	"numberOfWinners": 1,
-		// 	"numberOfRunners": 3,
-		// 	"numberOfActiveRunners": 3,
-		// 	"lastMatchTime": "2022-03-16T18:34:06.924Z",
-		// 	"totalMatched": 946450.74,
-		// 	"totalAvailable": 173585.43,
-		// 	"crossMatching": true,
-		// 	"runnersVoidable": false,
-		// 	"version": 4417661231,
-		// 	"runners": [{
-		// 		"selectionId": 64374,
-		// 		"handicap": 0.0,
-		// 		"status": "ACTIVE",
-		// 		"lastPriceTraded": 3.75,
-		// 		"totalMatched": 0.0,
-		// 		"ex": {
-		// 			"availableToBack": [{
-		// 				"price": 3.7,
-		// 				"size": 777.45
-		// 			}, {
-		// 				"price": 3.65,
-		// 				"size": 1164.38
-		// 			}, {
-		// 				"price": 3.6,
-		// 				"size": 1019.41
-		// 			}],
-		// 			"availableToLay": [{
-		// 				"price": 3.75,
-		// 				"size": 718.89
-		// 			}, {
-		// 				"price": 3.8,
-		// 				"size": 1145.15
-		// 			}, {
-		// 				"price": 3.85,
-		// 				"size": 1505.97
-		// 			}],
-		// 			"tradedVolume": []
-		// 		}
-		// 	}, {
-		// 		"selectionId": 44785,
-		// 		"handicap": 0.0,
-		// 		"status": "ACTIVE",
-		// 		"lastPriceTraded": 2.9,
-		// 		"totalMatched": 0.0,
-		// 		"ex": {
-		// 			"availableToBack": [{
-		// 				"price": 2.88,
-		// 				"size": 537.2
-		// 			}, {
-		// 				"price": 2.86,
-		// 				"size": 167.17
-		// 			}, {
-		// 				"price": 2.84,
-		// 				"size": 833.53
-		// 			}],
-		// 			"availableToLay": [{
-		// 				"price": 2.9,
-		// 				"size": 194.9
-		// 			}, {
-		// 				"price": 2.92,
-		// 				"size": 1168.09
-		// 			}, {
-		// 				"price": 2.94,
-		// 				"size": 526.12
-		// 			}],
-		// 			"tradedVolume": []
-		// 		}
-		// 	}, {
-		// 		"selectionId": 58805,
-		// 		"handicap": 0.0,
-		// 		"status": "ACTIVE",
-		// 		"lastPriceTraded": 2.6,
-		// 		"totalMatched": 0.0,
-		// 		"ex": {
-		// 			"availableToBack": [{
-		// 				"price": 2.58,
-		// 				"size": 70.4
-		// 			}, {
-		// 				"price": 2.56,
-		// 				"size": 1882.05
-		// 			}, {
-		// 				"price": 2.54,
-		// 				"size": 2229.28
-		// 			}],
-		// 			"availableToLay": [{
-		// 				"price": 2.6,
-		// 				"size": 171.1
-		// 			}, {
-		// 				"price": 2.62,
-		// 				"size": 904.11
-		// 			}, {
-		// 				"price": 2.64,
-		// 				"size": 73.12
-		// 			}],
-		// 			"tradedVolume": []
-		// 		}
-		// 	}]
-		// }]
 		// With the market books retrieved, distill into back and lay prices for the store
 		for _, book := range marketBook {
 			// Find the fixture in the global store
@@ -341,10 +204,7 @@ func (s *Store) SaveStoreToFile() error {
 
 	now := time.Now().Unix()
 	nameComponents := strings.Split(s.StorePath, ".")
-	err = os.Rename(s.StorePath, fmt.Sprintf("%s_%d.%s", nameComponents[0], now, nameComponents[1]))
-	if err != nil {
-		return err
-	}
+	_ = os.Rename(s.StorePath, fmt.Sprintf("%s_%d.%s", nameComponents[0], now, nameComponents[1]))
 	err = ioutil.WriteFile(s.StorePath, storebytes, 0666)
 	if err != nil {
 		return err
@@ -357,7 +217,7 @@ func (s *Store) findEventFromTeams(homeTeam string, awayTeam string) (leagueId s
 	for leagueId, league := range s.GlobalPriceStore {
 		// Look at each fixture in the league
 		for eventId, event := range league {
-			// Check if the hoem and away teams are in the fixture name
+			// Check if the home and away teams are in the fixture name
 			if strings.Contains(event.Fixture, homeTeam) && strings.Contains(event.Fixture, awayTeam) {
 				return leagueId, eventId, nil
 			}
@@ -382,7 +242,7 @@ func getPriceFromRunner(runner *types.Runner) *Price {
 	}
 
 	price.BackPrice, price.BackAmount = returnBestPrice(runner.Exchange.AvailableToBack, true)
-	price.LayPrice, price.LayAmount = returnBestPrice(runner.Exchange.AvailableToLay, true)
+	price.LayPrice, price.LayAmount = returnBestPrice(runner.Exchange.AvailableToLay, false)
 
 	return &price
 }
