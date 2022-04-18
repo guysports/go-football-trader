@@ -24,7 +24,8 @@ import (
 )
 
 var cli struct {
-	Track cmd.Track `cmd:"" help:"Track back and lay prices for a given league"`
+	Track   cmd.Track   `cmd:"" help:"Track back and lay prices for a given league"`
+	Analyze cmd.Analyze `cmd:"" help:"Analyze price trends in fixtures"`
 }
 
 func main() {

@@ -19,15 +19,37 @@
                     },
                     {
                         "time_stamp": "2022-03-23T14:21:01Z",
-                        "back_price": 2.5,
-                        "lay_price": 2.58,
+                        "back_price": 2.44,
+                        "lay_price": 2.46,
                         "back_amount": 47.13,
                         "lay_amount": 71.56
                     },
                     {
                         "time_stamp": "2022-03-23T15:02:51Z",
-                        "back_price": 2.5,
-                        "lay_price": 2.58,
+                        "back_price": 2.42,
+                        "lay_price": 2.44,
+                        "back_amount": 47.13,
+                        "lay_amount": 71.56
+                    }
+                ],
+                "58943": [{
+                        "time_stamp": "2022-03-23T13:58:53Z",
+                        "back_price": 2.8,
+                        "lay_price": 2.84,
+                        "back_amount": 47.13,
+                        "lay_amount": 15.36
+                    },
+                    {
+                        "time_stamp": "2022-03-23T14:21:01Z",
+                        "back_price": 2.82,
+                        "lay_price": 2.86,
+                        "back_amount": 47.13,
+                        "lay_amount": 71.56
+                    },
+                    {
+                        "time_stamp": "2022-03-23T15:02:51Z",
+                        "back_price": 2.9,
+                        "lay_price": 2.92,
                         "back_amount": 47.13,
                         "lay_amount": 71.56
                     }

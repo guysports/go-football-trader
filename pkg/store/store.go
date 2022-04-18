@@ -19,8 +19,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"guysports/go-football-trader/pkg/access"
+	"guysports/go-football-trader/pkg/helper"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,8 +30,9 @@ import (
 )
 
 type (
-	Result string
-	Status string
+	Result         string
+	Status         string
+	TrendDirection bool
 
 	// Global store of fixtures and their price histories
 	Store struct {
@@ -60,6 +63,23 @@ type (
 		BackAmount float32 `json:"back_amount"`
 		LayAmount  float32 `json:"lay_amount"`
 	}
+
+	// Trend holds the information extracted from the global store to analyze for price movements
+	Trend struct {
+		Fixture                  string
+		Team                     string
+		Home                     bool
+		StartPrice               float32
+		StartLayPrice            float32
+		CurrentPrice             float32
+		Delta                    float32
+		PriceChanges             int
+		PriceChangesAgainstTrend int
+		SampleNumber             int
+		Trend                    TrendDirection
+	}
+
+	Trends []Trend
 )
 
 const (
@@ -68,6 +88,9 @@ const (
 	Draw      = Result("draw")
 	Played    = Status("played")
 	Scheduled = Status("scheduled")
+
+	TrendingUp   = TrendDirection(true)
+	TrendingDown = TrendDirection(false)
 )
 
 // NewStore holds the state of the fixtures in the targetted leagues and their price trends
@@ -210,6 +233,66 @@ func (s *Store) SaveStoreToFile() error {
 		return err
 	}
 	return nil
+}
+
+func (s *Store) ExtractTrendsFromFixtures() (trends Trends) {
+	for _, league := range s.GlobalPriceStore {
+		for _, fixture := range league {
+			trend := extractTrendFromFixture(fixture)
+			if trend != nil {
+				trends = append(trends, trend...)
+			}
+		}
+	}
+	sort.Sort(trends)
+
+	return
+}
+
+func (t Trends) Len() int {
+	return len(t)
+}
+func (t Trends) Less(i, j int) bool {
+	return t[i].Delta < t[j].Delta
+}
+func (t Trends) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
+}
+
+func extractTrendFromFixture(fixture FixturePrices) (trend Trends) {
+	teams := strings.Split(fixture.Fixture, " v ")
+	if len(teams) != 2 {
+		return nil
+	}
+	homeId := fixture.HomeRunnerId
+	awayId := fixture.AwayRunnerId
+	homePriceHistory := fixture.PriceHistory[homeId]
+	awayPriceHistory := fixture.PriceHistory[awayId]
+	homeTrend := Trend{
+		Fixture:       fixture.Fixture,
+		Team:          teams[0],
+		Home:          true,
+		StartPrice:    homePriceHistory[0].BackPrice,
+		StartLayPrice: homePriceHistory[0].LayPrice,
+		CurrentPrice:  homePriceHistory[len(homePriceHistory)-1].LayPrice,
+		Delta:         helper.ConvertTo2DP(homePriceHistory[0].BackPrice - homePriceHistory[len(homePriceHistory)-1].LayPrice),
+		SampleNumber:  len(homePriceHistory),
+	}
+
+	trend = append(trend, homeTrend)
+	awayTrend := Trend{
+		Fixture:       fixture.Fixture,
+		Team:          teams[1],
+		Home:          false,
+		StartPrice:    awayPriceHistory[0].BackPrice,
+		StartLayPrice: awayPriceHistory[0].LayPrice,
+		CurrentPrice:  awayPriceHistory[len(awayPriceHistory)-1].LayPrice,
+		Delta:         helper.ConvertTo2DP(awayPriceHistory[0].BackPrice - awayPriceHistory[len(awayPriceHistory)-1].LayPrice),
+		SampleNumber:  len(awayPriceHistory),
+	}
+	trend = append(trend, awayTrend)
+
+	return trend
 }
 
 func (s *Store) findEventFromTeams(homeTeam string, awayTeam string) (leagueId string, eventId string, err error) {

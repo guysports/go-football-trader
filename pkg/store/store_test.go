@@ -444,3 +444,53 @@ func TestStore_AddLeaguePricesToStore(t *testing.T) {
 		})
 	}
 }
+
+func Test_extractTrendFromFixture(t *testing.T) {
+	type args struct {
+		fixture FixturePrices
+	}
+
+	teardownSuite := setupTestSuite(t)
+	defer teardownSuite(t)
+
+	tests := []struct {
+		name      string
+		args      args
+		wantTrend []Trend
+	}{
+		{
+			name: "Get trend for fixture",
+			args: args{
+				fixture: testStore["league1"]["fixture1"],
+			},
+			wantTrend: []Trend{
+				{
+					Fixture:       "Leeds v Southampton",
+					Team:          "Leeds",
+					Home:          true,
+					StartPrice:    2.5,
+					StartLayPrice: 2.58,
+					CurrentPrice:  2.44,
+					Delta:         0.06,
+					SampleNumber:  3,
+				},
+				{
+					Fixture:       "Leeds v Southampton",
+					Team:          "Southampton",
+					Home:          false,
+					StartPrice:    2.8,
+					StartLayPrice: 2.84,
+					CurrentPrice:  2.92,
+					Delta:         -0.12,
+					SampleNumber:  3,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTrend := extractTrendFromFixture(tt.args.fixture)
+			assert.ElementsMatch(t, tt.wantTrend, gotTrend)
+		})
+	}
+}
