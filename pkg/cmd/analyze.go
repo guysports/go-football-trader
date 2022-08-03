@@ -113,7 +113,7 @@ func (a *Analyze) Run(globals *types.Globals) error {
 
 func printTrendForOddsRangeInformation(trends []store.Trend, odds OddsRange) {
 	lineBreak()
-	fmt.Printf("Price analysis in the %.2f to %.2f range\n", odds.Low, odds.High)
+	fmt.Printf("Back First price analysis in the %.2f to %.2f range\n", odds.Low, odds.High)
 	var cumulativeProfit, cumulativeLoss float32
 	var positive, negative int
 	for _, trend := range trends {
@@ -121,9 +121,32 @@ func printTrendForOddsRangeInformation(trends []store.Trend, odds OddsRange) {
 			continue
 		}
 		percent := trend.Delta * 100 / trend.StartPrice
-		laystake, profit := calculateProfit(trend.StartPrice, trend.CurrentPrice)
+		laystake, profit := calculateBackProfit(trend.StartPrice, trend.CurrentPrice)
 		ql := DefaultStake - laystake*(1-BetfairCommission)
-		fmt.Printf("%s (%s) (%d) %.2f %.2f %.2f %.2f --- %.2f%% --- £%.2f £%.2f £%.2f\n", trend.Fixture, trend.Team, trend.SampleNumber, trend.StartPrice, trend.StartLayPrice, trend.CurrentPrice, trend.Delta, percent, laystake, ql, profit)
+		fmt.Printf("%s %s (%s) (%d) %.2f %.2f %.2f %.2f --- %.2f%% --- £%.2f £%.2f £%.2f\n", trend.StartTime, trend.Fixture, trend.Team, trend.SampleNumber, trend.StartPrice, trend.StartLayPrice, trend.CurrentPrice, trend.Delta, percent, laystake, ql, profit)
+		if trend.Delta > 0 {
+			cumulativeProfit += profit
+			positive++
+		} else {
+			cumulativeLoss += profit
+			negative++
+		}
+	}
+	lineBreak()
+	fmt.Printf("Cumulative Profit %.2f (%d)\n", cumulativeProfit, positive)
+	fmt.Printf("Cumulative Loss %.2f (%d)\n", cumulativeLoss, negative)
+	lineBreak()
+
+	lineBreak()
+	fmt.Printf("Lay First price analysis in the %.2f to %.2f range\n", odds.Low, odds.High)
+	for _, trend := range trends {
+		if trend.StartPrice < odds.Low || trend.StartPrice > odds.High {
+			continue
+		}
+		percent := trend.Delta * 100 / trend.StartPrice
+		laystake, profit := calculateLayProfit(trend.StartLayPrice, trend.CurrentLayPrice)
+		ql := DefaultStake - laystake*(1-BetfairCommission)
+		fmt.Printf("%s %s (%s) (%d) %.2f %.2f %.2f %.2f --- %.2f%% --- £%.2f £%.2f £%.2f\n", trend.StartTime, trend.Fixture, trend.Team, trend.SampleNumber, trend.StartLayPrice, trend.StartPrice, trend.CurrentLayPrice, trend.Delta, percent, laystake, ql, profit)
 		if trend.Delta > 0 {
 			cumulativeProfit += profit
 			positive++
@@ -138,8 +161,8 @@ func printTrendForOddsRangeInformation(trends []store.Trend, odds OddsRange) {
 	lineBreak()
 }
 
-func calculateProfit(backodds, layodds float32) (float32, float32) {
-	laystake := (DefaultStake * backodds) / (layodds - BetfairCommission)
+func calculateBackProfit(backodds, layodds float32) (float32, float32) {
+	laystake := (DefaultStake * backodds) / layodds
 
 	// Profit = stake - laystake * (1-commission)
 	// Loss = stake - laystake (no commission payable)
@@ -148,6 +171,18 @@ func calculateProfit(backodds, layodds float32) (float32, float32) {
 		profit = profit * (1 - BetfairCommission)
 	}
 	return helper.ConvertTo2DP(laystake), helper.ConvertTo2DP(profit)
+}
+
+func calculateLayProfit(layodds, backodds float32) (float32, float32) {
+	backstake := (DefaultStake * layodds) / backodds
+
+	// Profit = stake - laystake * (1-commission)
+	// Loss = stake - laystake (no commission payable)
+	profit := (backstake - DefaultStake)
+	if backstake > DefaultStake {
+		profit = profit * (1 - BetfairCommission)
+	}
+	return helper.ConvertTo2DP(backstake), helper.ConvertTo2DP(profit)
 }
 
 func lineBreak() {

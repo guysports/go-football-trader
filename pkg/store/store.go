@@ -69,9 +69,11 @@ type (
 		Fixture                  string
 		Team                     string
 		Home                     bool
+		StartTime                string
 		StartPrice               float32
 		StartLayPrice            float32
 		CurrentPrice             float32
+		CurrentLayPrice          float32
 		Delta                    float32
 		PriceChanges             int
 		PriceChangesAgainstTrend int
@@ -138,10 +140,13 @@ func (s *Store) AddLeaguePricesToStore(queryParameters *access.MarketQuery) erro
 		if err != nil {
 			return err
 		}
+		// If there are no events move to the next competition
+		if len(events) == 0 {
+			continue
+		}
 		// Find fixtures meeting odds criteria
 		fixtureEvents := []string{}
 		for _, fixture := range events {
-			//fmt.Printf("Event ID %s, Name %s, Number of Markets %d\n", eventW.Event.ID, eventW.Event.Name, eventW.MarketCount)
 			// Build a filter to get the market catalogues for each league
 			fixtureEvents = append(fixtureEvents, fixture.Event.ID)
 
@@ -268,27 +273,41 @@ func extractTrendFromFixture(fixture FixturePrices) (trend Trends) {
 	awayId := fixture.AwayRunnerId
 	homePriceHistory := fixture.PriceHistory[homeId]
 	awayPriceHistory := fixture.PriceHistory[awayId]
-	homeTrend := Trend{
-		Fixture:       fixture.Fixture,
-		Team:          teams[0],
-		Home:          true,
-		StartPrice:    homePriceHistory[0].BackPrice,
-		StartLayPrice: homePriceHistory[0].LayPrice,
-		CurrentPrice:  homePriceHistory[len(homePriceHistory)-1].LayPrice,
-		Delta:         helper.ConvertTo2DP(homePriceHistory[0].BackPrice - homePriceHistory[len(homePriceHistory)-1].LayPrice),
-		SampleNumber:  len(homePriceHistory),
-	}
 
+	// Find entry point of start & start layprice being within two ticks
+	homeIdx := findStartIndexInPrices(homePriceHistory)
+	if homeIdx == nil {
+		return nil
+	}
+	homeTrend := Trend{
+		Fixture:         fixture.Fixture,
+		Team:            teams[0],
+		Home:            true,
+		StartTime:       homePriceHistory[*homeIdx].Timestamp,
+		StartPrice:      homePriceHistory[*homeIdx].BackPrice,
+		StartLayPrice:   homePriceHistory[*homeIdx].LayPrice,
+		CurrentPrice:    homePriceHistory[len(homePriceHistory)-1].LayPrice,
+		CurrentLayPrice: homePriceHistory[len(homePriceHistory)-1].BackPrice,
+		Delta:           helper.ConvertTo2DP(homePriceHistory[*homeIdx].BackPrice - homePriceHistory[len(homePriceHistory)-1].LayPrice),
+		SampleNumber:    len(homePriceHistory) - *homeIdx,
+	}
 	trend = append(trend, homeTrend)
+
+	// Find entry point of start & start layprice being within two ticks
+	awayIdx := findStartIndexInPrices(homePriceHistory)
+	if awayIdx == nil {
+		return nil
+	}
 	awayTrend := Trend{
-		Fixture:       fixture.Fixture,
-		Team:          teams[1],
-		Home:          false,
-		StartPrice:    awayPriceHistory[0].BackPrice,
-		StartLayPrice: awayPriceHistory[0].LayPrice,
-		CurrentPrice:  awayPriceHistory[len(awayPriceHistory)-1].LayPrice,
-		Delta:         helper.ConvertTo2DP(awayPriceHistory[0].BackPrice - awayPriceHistory[len(awayPriceHistory)-1].LayPrice),
-		SampleNumber:  len(awayPriceHistory),
+		Fixture:         fixture.Fixture,
+		Team:            teams[1],
+		Home:            false,
+		StartPrice:      awayPriceHistory[*awayIdx].BackPrice,
+		StartLayPrice:   awayPriceHistory[*awayIdx].LayPrice,
+		CurrentPrice:    awayPriceHistory[len(awayPriceHistory)-1].LayPrice,
+		CurrentLayPrice: awayPriceHistory[len(awayPriceHistory)-1].BackPrice,
+		Delta:           helper.ConvertTo2DP(awayPriceHistory[*awayIdx].BackPrice - awayPriceHistory[len(awayPriceHistory)-1].LayPrice),
+		SampleNumber:    len(awayPriceHistory) - *awayIdx,
 	}
 	trend = append(trend, awayTrend)
 
@@ -350,4 +369,15 @@ func returnBestPrice(availableOdds []types.Odds, highest bool) (price float32, a
 		}
 	}
 	return price, amount
+}
+
+func findStartIndexInPrices(prices []Price) (index *int) {
+	for idx, price := range prices {
+		tickOffset := helper.GetBetfairTickOffset(price.BackPrice)
+		if (price.LayPrice - price.BackPrice) <= 2*tickOffset {
+			index = &idx
+			break
+		}
+	}
+	return index
 }
